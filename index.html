@@ -1,0 +1,231 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Careers Hiring Demo</title>
+<style>
+/* Layout: portal switch, section tabs, one column of records; HR and candidate share one data set */
+:root{--bg:#f3f6f6;--card:#fff;--fg:#14262b;--mute:#566b71;--line:#d5e0e1;--acc:#0b6e75;--on:#fff;--good:#1d7a45;--bad:#a83a32}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a1d;--card:#172528;--fg:#e5eff0;--mute:#9bb0b4;--line:#2c4045;--acc:#52c3c9;--on:#06191b;--good:#69d094;--bad:#f0928a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a1d;--card:#172528;--fg:#e5eff0;--mute:#9bb0b4;--line:#2c4045;--acc:#52c3c9;--on:#06191b;--good:#69d094;--bad:#f0928a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,sans-serif}
+main{max-width:960px;margin:auto;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:25px;margin:0}h2{font-size:18px;margin:20px 0 8px}h3{margin:0;font-size:16px}
+nav,.row,.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row{justify-content:space-between}.bar{margin-top:12px}
+nav{margin:12px 0 16px;border-bottom:1px solid var(--line);padding-bottom:10px}
+button{font:inherit;cursor:pointer;border:1px solid var(--acc);background:var(--acc);color:var(--on);border-radius:6px;padding:6px 12px}
+button.alt{background:transparent;color:var(--acc)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;min-width:0;overflow-wrap:anywhere}
+.mute{color:var(--mute);font-size:13px}.good{color:var(--good);font-weight:600}.bad{color:var(--bad);font-weight:600}
+label{display:block;font-weight:600;font-size:13px;margin:8px 0 3px}
+input,textarea,select{font:inherit;width:100%;box-sizing:border-box;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input[type=radio],input[type=checkbox]{width:auto;margin-right:8px}.opt{font-weight:400;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}.stats .card{margin:0}.stats b{font-size:23px}
+.pipe{display:grid;grid-template-columns:minmax(110px,170px) 1fr 28px;gap:8px;align-items:center}.pipe i{display:block;height:10px;background:var(--acc);border-radius:3px}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:7px;border-bottom:1px solid var(--line);white-space:nowrap}
+ol.track{padding-left:20px}ol.track li{color:var(--mute)}ol.track li.done{color:var(--fg)}ol.track li.now{color:var(--acc);font-weight:700}
+pre{white-space:pre-wrap;font:inherit;font-size:13px}
+</style>
+<main>
+<h1>Careers at Your Company</h1>
+<div class="mute">Demo with example data, saved only in this browser. No email is sent. Use made-up details.</div>
+<div class="bar" id="portal"></div>
+<nav id="nav"></nav>
+<div id="view"></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+const KEY="careers5",$=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const QUALS=["12th","Diploma","Graduate","Postgraduate"];
+const STAGE={review:"HR review",ineligible:"Not eligible",invited:"Test pending",failed:"Failed test",passed:"Passed test",shortlisted:"Shortlisted",scheduled:"Interview scheduled",interviewed:"Interview completed",selected:"Selected",waitlisted:"Waitlisted",rejected:"Rejected"};
+const SEEN={review:"Under Review",ineligible:"Not Selected",invited:"Assessment Pending",failed:"Assessment Completed",passed:"Assessment Completed",shortlisted:"Shortlisted",scheduled:"Interview Scheduled",interviewed:"Interview Completed",selected:"Selected",waitlisted:"Waitlisted",rejected:"Not Selected"};
+const ALIAS={javascript:["js","es6"],react:["reactjs","react.js"],seo:["search engine optimisation","search engine optimization"],recruitment:["hiring","talent acquisition"],excel:["spreadsheets"],gst:["goods and services tax"],git:["github","gitlab"]};
+const Q={
+web:[["Which HTML element is the largest heading?",["<head>","<h1>","<h6>","<title>"],1],["Which CSS property changes text colour?",["font-color","text-style","color","foreground"],2],["What does === check in JavaScript?",["Value only","Type only","Value and type","Assignment"],2],["Which HTTP method usually creates a record?",["GET","POST","HEAD","OPTIONS"],1]],
+mkt:[["What does SEO stand for?",["Search engine optimisation","Sales engagement output","Site email outreach","Social engagement order"],0],["Click-through rate is clicks divided by:",["Sales","Impressions","Followers","Cost"],1],["An A/B test compares:",["Two budgets","Two versions of one thing","Two companies","Two years"],1],["200 clicks and 10 purchases is a conversion rate of:",["2%","5%","10%","20%"],1]],
+gen:[["What is 15% of 200?",["15","20","30","35"],2],["Next number: 2, 4, 8, 16, ?",["18","24","32","64"],2],["Choose the correct sentence.",["He go to work.","He goes to work.","He going to work.","He gone to work."],1],["Which word is closest to 'reliable'?",["Dependable","Rapid","Costly","Rare"],0]]};
+const SC={web:["A client says the Submit button is hidden on phones.","What do you do first?",["Rebuild the site","Reproduce it at phone width and inspect the layout","Ask the client to use a laptop","Remove the form"],1],
+mkt:["An ad gets many clicks but almost no enquiries.","What do you check first?",["The landing page and form","The logo","Double the budget","Office hours"],0],
+gen:["A task is due today and you find an error in your earlier work.","What do you do?",["Hide it","Submit anyway","Tell your lead and fix it","Wait until asked"],2]};
+const bankFor=set=>[...Q[set].map(q=>({sc:"",q:q[0],o:q[1],a:q[2]})),{sc:SC[set][0],q:SC[set][1],o:SC[set][2],a:SC[set][3]}];
+const now=()=>new Date().toLocaleString();
+const job=id=>S.jobs.find(j=>j.id===id),app=id=>S.apps.find(a=>a.id===id);
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const isOpen=j=>j.open&&j.deadline>=today();
+const final=a=>Math.round((a.elig*(100-job(a.job).testW)+a.test*job(a.job).testW)/100);
+const has=(t,k)=>[k,...(ALIAS[k]||[])].some(w=>new RegExp("(^|[^a-z0-9])"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|[^a-z0-9+#])","i").test(t));
+function screen(j,exp,qual,text){
+ const found=j.req.filter(k=>has(text,k)),missing=j.req.filter(k=>!found.includes(k)),pf=j.pref.filter(k=>has(text,k));
+ const elig=Math.round(70*found.length/j.req.length+15*(j.pref.length?pf.length/j.pref.length:1)+(exp>=j.exp?15:0));
+ const must=[];if(exp<j.exp)must.push(`needs ${j.exp}+ years of experience`);if(QUALS.indexOf(qual)<QUALS.indexOf(j.qual))must.push(`needs ${j.qual} or higher`);
+ const stage=must.length?"ineligible":elig>=j.minScore?"invited":"review";
+ const why=(must.length?"Mandatory rule not met: "+must.join(", "):`Score ${elig}, ${stage==="invited"?"at or above":"below"} the cut-off of ${j.minScore}`)+`. Required found: ${found.join(", ")||"none"}. Missing: ${missing.join(", ")||"none"}. Preferred found: ${pf.join(", ")||"none"}.`;
+ return{elig,found,missing,why,stage};
+}
+function log(a,t){a.history.push({at:now(),t})}
+function mail(a,subject,body){S.mail.unshift({app:a.id,to:a.email,subject,body,at:now()})}
+function setStage(a,stage,note){
+ a.stage=stage;log(a,STAGE[stage]+(note?" ("+note+")":""));
+ const t=job(a.job).title,iv=a.interview;
+ const text={invited:"You are shortlisted for the online test. Sign in to My application to take it.",review:"Our team is reviewing your application.",ineligible:"We will not be taking your application forward this time.",passed:"We have received your test.",failed:"We have received your test.",shortlisted:"You have been shortlisted. We will share interview details.",scheduled:iv?`Your interview is on ${iv.when.replace("T"," at ")} (${iv.mode}).`:"Your interview is being scheduled.",selected:"Congratulations, you have been selected. HR will contact you.",waitlisted:"You are on our waiting list.",rejected:"We will not be taking your application forward this time."}[stage];
+ if(text)mail(a,`${SEEN[stage]}: ${t}`,`Hello ${a.name}, ${text}`);
+}
+function seed(){
+ const J=(id,title,dept,type,loc,exp,qual,req,pref,salary,set,desc)=>({id,title,dept,type,loc,exp,qual,req:req.split(","),pref:pref.split(","),salary,set,desc,deadline:"2027-01-31",minScore:65,pass:60,testW:70,mins:10,open:true});
+ S={jobs:[J(1,"Web Developer","Technology","Full time","Remote",1,"Graduate","html,css,javascript,react","git,node","4 to 6 lakh a year","web","Build and maintain our websites and web apps."),
+ J(2,"Digital Marketing Executive","Marketing","Full time","Office",0,"Graduate","seo,content,social media","analytics,canva","3 to 4 lakh a year","mkt","Plan campaigns, write content and report results."),
+ J(3,"HR Executive","Human Resources","Full time","Office",1,"Graduate","recruitment,onboarding,excel","payroll","","gen","Hire, onboard and support employees."),
+ J(4,"Business Development Intern","Sales","Internship","Hybrid",0,"12th","communication,sales","lead generation,excel","Stipend","gen","Find leads and follow up with prospects.")],apps:[],mail:[],tests:{},next:1001};
+ S.jobs.forEach(j=>S.tests[j.id]=bankFor(j.set));
+ // job, name, years, qualification, required found, preferred found, final stage, test score
+ [[1,"Asha",2,"Graduate",4,2,"selected",80],[1,"Ravi",3,"Postgraduate",4,1,"scheduled",100],[1,"Karthik",4,"Graduate",3,2,"shortlisted",80],[1,"Sneha",1,"Graduate",4,0,"passed",80],[1,"Divya",2,"Graduate",3,1,"failed",40],[1,"Imran",1,"Graduate",4,1,"invited"],[1,"Meena",2,"Graduate",1,0,"review"],[1,"Gopal",0,"Diploma",2,0,"ineligible"],
+ [2,"Priya",1,"Graduate",3,2,"interviewed",100],[2,"Suresh",0,"Graduate",3,0,"passed",60],[2,"Neha",2,"Graduate",1,1,"review"],[2,"Arjun",1,"Graduate",3,1,"invited"],
+ [3,"Lakshmi",3,"Postgraduate",3,1,"waitlisted",80],[3,"Vikram",2,"Graduate",3,0,"rejected",60],[3,"Fatima",0,"Graduate",2,0,"ineligible"],
+ [4,"Joseph",0,"12th",2,2,"shortlisted",100],[4,"Anita",1,"Graduate",2,1,"passed",80],[4,"Manoj",0,"12th",0,1,"review"]].forEach(([jid,n,exp,qual,rc,pc,stage,test])=>{
+  const j=job(jid),text=`${n} (made-up sample resume)\nQualification: ${qual}\nExperience: ${exp} years\nSkills: ${[...j.req.slice(0,rc),...j.pref.slice(0,pc)].join(", ")}`,r=screen(j,exp,qual,text),email=n.toLowerCase()+"@example.com";
+  const a={...r,id:"APP-"+S.next++,job:jid,name:"Example: "+n,email,phone:"00000 00000",city:"Example city",qual,exp,notice:"15 days",file:n.toLowerCase()+"-resume.pdf",text,test:test??null,secs:120+n.length*10,history:[]};
+  log(a,"Application received");log(a,"Screening: "+STAGE[r.stage]);
+  if(["scheduled","interviewed","selected","waitlisted","rejected"].includes(stage))a.interview={when:"2026-12-03T11:00",mode:"Video call"};
+  S.apps.push(a);setStage(a,stage,"example data")});
+ return S;
+}
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S)seed();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let admin=location.hash==="#admin",view=admin?"dash":"jobs",cur=null,pick=1,edit=null,timer=null,flt={q:"",type:"",loc:""},aflt={q:"",job:"",stage:""},me="";
+const CT=[["jobs","Open jobs"],["track","My application"],["inbox","Email inbox (simulated)"]];
+const AT=[["dash","Dashboard"],["apps","Applications"],["rank","Ranking"],["interviews","Interviews"],["manage","Jobs"],["bank","Tests"],["outbox","Emails"]];
+function go(v){clearInterval(timer);view=v;render()}
+function portal(x){admin=x;location.hash=x?"admin":"candidate";go(x?"dash":"jobs")}
+function render(){
+ $("portal").innerHTML=`<span class="mute">Demo view:</span><button class="${admin?'alt':''}" onclick="portal(false)">Candidate</button><button class="${admin?'':'alt'}" onclick="portal(true)">Super admin</button>`;
+ $("nav").innerHTML=(admin?AT:CT).map(([v,n])=>`<button class="${view===v?'':'alt'}" onclick="go('${v}')">${n}</button>`).join("");
+ ({jobs,apply,done,track,test,inbox,dash,apps,rank,interviews,manage,bank,outbox})[view]();
+}
+const page=h=>$("view").innerHTML=h,empty=t=>`<div class="card">${t}</div>`;
+const options=(list,sel,all)=>(all?`<option value="">${all}</option>`:"")+list.map(([v,n])=>`<option value="${esc(v)}" ${String(v)===String(sel)?"selected":""}>${esc(n)}</option>`).join("");
+const same=l=>[...new Set(l)].map(x=>[x,x]);
+/* candidate */
+function jobs(){
+ page(`<div class="card"><b>How it works:</b> apply with your resume, pass screening, take the online test, attend an interview. Track every step under My application.</div>
+ <div class="grid"><div><label for="fq">Search job, department or skill</label><input id="fq" value="${esc(flt.q)}"></div><div><label for="ft">Job type</label><select id="ft">${options(same(S.jobs.map(j=>j.type)),flt.type,"All types")}</select></div><div><label for="fl">Location</label><select id="fl">${options(same(S.jobs.map(j=>j.loc)),flt.loc,"All locations")}</select></div></div><div id="list" style="margin-top:12px"></div>`);
+ const draw=()=>{flt={q:$("fq").value,type:$("ft").value,loc:$("fl").value};
+  const l=S.jobs.filter(j=>isOpen(j)&&(!flt.type||j.type===flt.type)&&(!flt.loc||j.loc===flt.loc)&&[j.title,j.dept,...j.req,...j.pref].join(" ").toLowerCase().includes(flt.q.toLowerCase()));
+  $("list").innerHTML=l.map(j=>`<div class="card"><div class="row"><h3>${esc(j.title)}</h3><button onclick="cur=${j.id};go('apply')">Apply now</button></div><div class="mute">${esc(j.dept)} · ${esc(j.type)} · ${esc(j.loc)} · ${j.exp}+ years · ${j.qual} or higher · Apply by ${j.deadline}${j.salary?" · "+esc(j.salary):""}</div><p>${esc(j.desc)}</p><div class="mute">Required: ${esc(j.req.join(", "))}<br>Preferred: ${esc(j.pref.join(", "))}</div></div>`).join("")||empty("No open jobs match your search.")};
+ $("fq").oninput=$("ft").onchange=$("fl").onchange=draw;draw();
+}
+async function readResume(f){
+ if(f.size>5e6)throw Error("The file is over 5 MB.");
+ const ext=f.name.split(".").pop().toLowerCase(),buf=await f.arrayBuffer();
+ if(ext==="pdf"){const d=await pdfjsLib.getDocument({data:buf}).promise;let t="";for(let i=1;i<=d.numPages;i++){const c=await(await d.getPage(i)).getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?"\n":" ")).join("")}return t}
+ if(ext==="docx")return(await mammoth.extractRawText({arrayBuffer:buf})).value;
+ if(ext==="txt")return new TextDecoder().decode(buf);
+ throw Error("Upload a PDF, DOCX or TXT file.");
+}
+function apply(){
+ const j=job(cur),F=(id,l,extra="required")=>`<div><label for="${id}">${l}</label><input id="${id}" ${extra}></div>`;
+ page(`<form class="card" id="f"><h3>Apply for ${esc(j.title)}</h3><h2>Personal</h2><div class="grid">${F("n","Full name")}${F("e","Email",'type="email" required')}${F("p","Mobile number",'type="tel" required')}${F("c","Current location")}</div>
+ <h2>Education</h2><div class="grid"><div><label for="ql">Highest qualification</label><select id="ql">${options(same(QUALS),"Graduate")}</select></div>${F("sp","Specialization","")}${F("col","College or university","")}${F("gy","Graduation year",'type="number" min="1970" max="2032"')}</div>
+ <h2>Work</h2><div class="grid">${F("x","Total experience in years (0 for fresher)",'type="number" min="0" step="0.5" required')}${F("pc","Previous company","")}${F("des","Current designation","")}${F("sk","Skills","")}${F("lang","Languages known","")}${F("sal","Expected salary","")}${F("nt","Notice period","")}</div>
+ <h2>Resume and links</h2><label for="r">Resume (PDF, DOCX or TXT, up to 5 MB)</label><input id="r" type="file" accept=".pdf,.docx,.txt" required><div class="grid">${F("pf","Portfolio URL",'type="url"')}${F("li","LinkedIn",'type="url"')}${F("gh","GitHub",'type="url"')}</div>
+ <label for="cv">Cover letter</label><textarea id="cv" rows="3"></textarea>
+ <label class="opt"><input type="checkbox" id="ok" required>I agree that my details can be used for this recruitment.</label>
+ <p class="bad" id="err" role="alert"></p><button>Submit application</button></form>`);
+ $("f").onsubmit=async ev=>{ev.preventDefault();const v=id=>$(id).value.trim(),btn=ev.target.querySelector("button"),err=$("err"),email=v("e").toLowerCase(),file=$("r").files[0];
+  const dup=S.apps.find(a=>a.job===j.id&&a.email.toLowerCase()===email);
+  if(dup){err.textContent="This email has already applied for this job. Application ID: "+dup.id;return}
+  const d={name:v("n"),email,phone:v("p"),city:v("c"),qual:v("ql"),spec:v("sp"),college:v("col"),year:v("gy"),exp:+v("x"),company:v("pc"),role:v("des"),skills:v("sk"),langs:v("lang"),salary:v("sal"),notice:v("nt"),links:[v("pf"),v("li"),v("gh")].filter(Boolean).join(" "),cover:v("cv")};
+  btn.disabled=true;err.textContent="";let text;
+  try{text=await readResume(file);if(!text.trim())throw Error("No text found. Scanned image resumes cannot be read.")}catch(e){err.textContent="Could not read the resume. "+e.message;btn.disabled=false;return}
+  const r=screen(j,d.exp,d.qual,text+" "+d.skills),a={...d,...r,id:"APP-"+S.next++,job:j.id,file:file.name,text:text.slice(0,4000),test:null,history:[]};
+  S.apps.push(a);log(a,"Application received");setStage(a,r.stage,"automatic screening");save();me=a.id;if(view==="apply")go("done")};
+}
+function done(){page(`<div class="card"><h3>Application received</h3><p>Your application ID is <b>${me}</b>. Keep it to track your status.</p><button onclick="go('track')">Track my application</button></div>`)}
+function track(){
+ const a=app(me);
+ page(`<form class="card" id="tf"><div class="grid"><div><label for="tid">Application ID</label><input id="tid" required value="${esc(me)}" placeholder="APP-1006"></div><div><label for="tem">Email used to apply</label><input id="tem" type="email" required value="${esc(a?a.email:"")}"></div></div><p class="bad" id="te" role="alert"></p><button>View status</button><p class="mute">Try the example APP-1006 with imran@example.com.</p></form><div id="st"></div>`);
+ $("tf").onsubmit=e=>{e.preventDefault();const x=app($("tid").value.trim().toUpperCase());
+  if(!x||x.email.toLowerCase()!==$("tem").value.trim().toLowerCase()){$("te").textContent="No application matches that ID and email.";$("st").innerHTML="";return}me=x.id;render()};
+ if(!a)return;
+ const steps=["Application received","Screening","Online test","Shortlisted","Interview","Decision"];
+ const at={review:1,ineligible:5,invited:2,failed:2,passed:2,shortlisted:3,scheduled:4,interviewed:4,selected:5,waitlisted:5,rejected:5}[a.stage];
+ $("st").innerHTML=`<div class="card"><h3>${esc(job(a.job).title)}: ${SEEN[a.stage]}</h3><div class="mute">${a.id} · ${esc(a.name)}</div><ol class="track">${steps.map((s,i)=>`<li class="${i<at?'done':i===at?'now':''}">${s}</li>`).join("")}</ol>
+ ${a.stage==="invited"?`<p>Your test has ${S.tests[a.job].length} questions and a ${job(a.job).mins} minute limit. You can submit once.</p><button onclick="startTest('${a.id}')">Start test</button>`:""}
+ ${a.stage==="scheduled"&&a.interview?`<p><b>Interview:</b> ${esc(a.interview.when.replace("T"," at "))}, ${esc(a.interview.mode)}</p>`:""}</div>
+ <h2>Updates</h2>${S.mail.filter(m=>m.app===a.id).map(mailCard).join("")}`;
+}
+function startTest(id){cur=id;go("test")}
+function test(){
+ const a=app(cur);if(!a||a.stage!=="invited"){go("track");return}
+ const j=job(a.job),qs=[...S.tests[j.id]].sort(()=>Math.random()-.5),start=Date.now();
+ page(`<form id="t"><div class="card row"><b>${esc(j.title)} test · pass mark ${j.pass}%</b><span id="clock"></span></div>${qs.map((q,i)=>`<div class="card">${q.sc?`<p><b>Scenario:</b> ${esc(q.sc)}</p>`:""}<b>${i+1}. ${esc(q.q)}</b>${q.o.map((o,k)=>`<label class="opt"><input type="radio" id="q${i}_${k}" name="q${i}" value="${k}" required>${esc(o)}</label>`).join("")}</div>`).join("")}<button>Submit test</button></form>`);
+ const finish=()=>{clearInterval(timer);const d=new FormData($("t"));
+  a.test=Math.round(qs.filter((q,i)=>d.get("q"+i)===String(q.a)).length/qs.length*100);a.secs=Math.round((Date.now()-start)/1000);
+  setStage(a,a.test>=j.pass?"passed":"failed","test submitted");save();me=a.id;go("track")};
+ const tick=()=>{const left=j.mins*60-Math.floor((Date.now()-start)/1000);if(left<=0)return finish();$("clock").textContent=`Time left ${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`};
+ tick();timer=setInterval(tick,1000);$("t").onsubmit=e=>{e.preventDefault();finish()};
+}
+function mailCard(m){return`<div class="card"><h3>${esc(m.subject)}</h3><div class="mute">To ${esc(m.to)} · ${esc(m.at)}</div><p>${esc(m.body)}</p></div>`}
+function inbox(){const l=S.mail.filter(m=>m.app===me);page(`<p class="mute">Stands in for your real email. It shows mail for the application you applied with or tracked.</p>`+(l.map(mailCard).join("")||empty("Apply or track an application to see its emails.")))}
+/* HR admin */
+function report(){return S.jobs.map(j=>{const l=S.apps.filter(a=>a.job===j.id),el=l.filter(a=>!["review","ineligible"].includes(a.stage)),t=l.filter(a=>a.test!=null);
+ return[j.title,l.length,l.length?Math.round(el.length/l.length*100)+"%":"-",el.length?Math.round(t.length/el.length*100)+"%":"-",t.length?Math.round(t.reduce((s,a)=>s+a.test,0)/t.length):"-",l.filter(a=>a.stage==="selected").length]})}
+const HEAD=["Job","Applications","Passed screening","Test completion","Average test","Selected"];
+function dash(){
+ const n=(...s)=>S.apps.filter(a=>s.includes(a.stage)).length,max=Math.max(1,...Object.keys(STAGE).map(s=>n(s)));
+ page(`<div class="stats">${[["Open jobs",S.jobs.filter(isOpen).length],["Applications",S.apps.length],["Need review",n("review")],["Tests pending",n("invited")],["Tests completed",S.apps.filter(a=>a.test!=null).length],["Shortlisted",n("shortlisted")],["Interviews scheduled",n("scheduled")],["Selected",n("selected")]].map(([l,v])=>`<div class="card"><b>${v}</b><div class="mute">${l}</div></div>`).join("")}</div>
+ <h2>Candidates by current stage</h2><div class="card">${Object.keys(STAGE).map(s=>`<div class="pipe"><span>${STAGE[s]}</span><span><i style="width:${n(s)/max*100}%"></i></span><span>${n(s)}</span></div>`).join("")}</div>
+ <h2>Job report</h2><div class="card"><div class="scroll"><table><tr>${HEAD.map(h=>`<th>${h}</th>`).join("")}</tr>${report().map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</table></div><p><button class="alt" id="cp">Copy report for Excel</button></p><textarea id="out" rows="5" hidden readonly></textarea></div>
+ <button class="alt" onclick="seed();save();me='';render()">Reset demo data</button>`);
+ $("cp").onclick=async()=>{const t=[HEAD,...report()].map(r=>r.join("\t")).join("\n");try{await navigator.clipboard.writeText(t);$("cp").textContent="Copied"}catch(e){$("out").hidden=false;$("out").value=t;$("out").select()}};
+}
+function apps(){
+ page(`<div class="grid"><div><label for="aq">Search name, email or ID</label><input id="aq" value="${esc(aflt.q)}"></div><div><label for="aj">Job</label><select id="aj">${options(S.jobs.map(j=>[j.id,j.title]),aflt.job,"All jobs")}</select></div><div><label for="as">Stage</label><select id="as">${options(Object.entries(STAGE),aflt.stage,"All stages")}</select></div></div><div id="list" style="margin-top:12px"></div>`);
+ const draw=()=>{aflt={q:$("aq").value,job:$("aj").value,stage:$("as").value};
+  $("list").innerHTML=S.apps.slice().reverse().filter(a=>(!aflt.job||a.job==aflt.job)&&(!aflt.stage||a.stage===aflt.stage)&&`${a.name} ${a.email} ${a.id}`.toLowerCase().includes(aflt.q.toLowerCase())).map(a=>`<div class="card"><div class="row"><h3>${esc(a.name)}</h3><span class="${["ineligible","failed","rejected"].includes(a.stage)?'bad':'good'}">${STAGE[a.stage]}</span></div>
+  <div class="mute">${a.id} · ${esc(job(a.job).title)} · Screening ${a.elig}${a.test==null?"":" · Test "+a.test+"%"}</div><div class="mute">${esc(a.why)}</div>
+  <details><summary>Profile, resume and history</summary><p>${[["Email",a.email],["Mobile",a.phone],["Location",a.city],["Qualification",[a.qual,a.spec,a.college,a.year].filter(Boolean).join(", ")],["Experience",a.exp+" years"],["Previous",[a.company,a.role].filter(Boolean).join(", ")],["Skills",a.skills],["Languages",a.langs],["Expected salary",a.salary],["Notice",a.notice],["Links",a.links],["Cover letter",a.cover]].filter(x=>x[1]).map(([k,v])=>`<b>${k}:</b> ${esc(v)}`).join("<br>")}</p><pre>${esc(a.text)}</pre><div class="mute">${a.history.map(h=>esc(h.at+": "+h.t)).join("<br>")}</div></details>
+  <label for="mv${a.id}">Move to stage</label><select id="mv${a.id}" onchange="move('${a.id}',this.value)">${options(Object.entries(STAGE),a.stage)}</select></div>`).join("")||empty("No applications match.")};
+ $("aq").oninput=$("aj").onchange=$("as").onchange=draw;draw();
+}
+function move(id,s){const a=app(id);if(s==="invited")a.test=null;setStage(a,s,"changed by HR");save();render()}
+function rank(){
+ page(S.jobs.map(j=>{const l=S.apps.filter(a=>a.job===j.id&&a.test!=null&&a.test>=j.pass&&!["rejected","failed"].includes(a.stage)).sort((a,b)=>final(b)-final(a)||a.secs-b.secs);
+ return`<h2>${esc(j.title)}</h2><div class="mute">Final = screening ${100-j.testW}% + test ${j.testW}%</div><div class="card">${l.length?`<div class="scroll"><table><tr><th>Rank</th><th>Candidate</th><th>Screening</th><th>Test</th><th>Final</th><th>Missing skills</th><th>Status</th></tr>${l.map((a,i)=>`<tr><td>${i+1}</td><td>${esc(a.name)}</td><td>${a.elig}</td><td>${a.test}%</td><td><b>${final(a)}</b></td><td>${esc(a.missing.join(", ")||"none")}</td><td>${a.stage==="passed"?`<button onclick="move('${a.id}','shortlisted')">Shortlist</button>`:STAGE[a.stage]}</td></tr>`).join("")}</table></div>`:'<span class="mute">No one has passed yet.</span>'}</div>`}).join(""));
+}
+function interviews(){
+ const g=s=>S.apps.filter(a=>a.stage===s),head=a=>`<h3>${esc(a.name)}</h3><div class="mute">${esc(job(a.job).title)} · ${esc(a.email)}</div>`;
+ page(`<h2>To schedule</h2>${g("shortlisted").map(a=>`<form class="card" onsubmit="schedule(event,'${a.id}')">${head(a)}<div class="grid"><div><label for="w${a.id}">Date and time</label><input id="w${a.id}" name="when" type="datetime-local" required></div><div><label for="m${a.id}">Mode</label><select id="m${a.id}" name="mode"><option>Video call</option><option>In person</option><option>Phone</option></select></div></div><p><button>Schedule interview</button></p></form>`).join("")||empty("Shortlist candidates from Ranking to schedule them.")}
+ <h2>Scheduled</h2>${g("scheduled").map(a=>`<div class="card">${head(a)}<p>${esc(a.interview?.when.replace("T"," at ")||"Time not set")} · ${esc(a.interview?.mode||"")}</p><button onclick="move('${a.id}','interviewed')">Mark completed</button></div>`).join("")||empty("No interviews scheduled.")}
+ <h2>Awaiting decision</h2>${g("interviewed").map(a=>`<div class="card">${head(a)}<label for="fb${a.id}">Interviewer feedback</label><textarea id="fb${a.id}" onchange="app('${a.id}').feedback=this.value;save()">${esc(a.feedback)}</textarea><div class="bar"><button onclick="move('${a.id}','selected')">Select</button><button class="alt" onclick="move('${a.id}','waitlisted')">Waitlist</button><button class="alt" onclick="move('${a.id}','rejected')">Reject</button></div></div>`).join("")||empty("No completed interviews are waiting.")}`);
+}
+function schedule(e,id){e.preventDefault();const a=app(id),d=new FormData(e.target);a.interview={when:d.get("when"),mode:d.get("mode")};setStage(a,"scheduled");save();render()}
+function manage(){
+ const j=job(edit)||{title:"",dept:"",type:"Full time",loc:"",exp:0,qual:"Graduate",req:[],pref:[],salary:"",desc:"",deadline:"2027-01-31",minScore:65,pass:60,testW:70,mins:10,set:"gen"};
+ const F=(k,l,extra="required")=>`<div><label for="j_${k}">${l}</label><input id="j_${k}" value="${esc(Array.isArray(j[k])?j[k].join(", "):j[k])}" ${extra}></div>`,num=(k,l,min,max)=>F(k,l,`type="number" min="${min}" max="${max}" required`);
+ page(S.jobs.map(x=>`<div class="card row"><div><h3>${esc(x.title)}</h3><div class="mute">${isOpen(x)?"Open":"Closed"} · apply by ${x.deadline} · ${S.apps.filter(a=>a.job===x.id).length} applications</div></div><div class="bar"><button class="alt" onclick="edit=${x.id};render();$('jf').scrollIntoView()">Edit</button><button class="alt" onclick="job(${x.id}).open=!job(${x.id}).open;save();render()">${x.open?"Close":"Publish"}</button></div></div>`).join("")+
+ `<form class="card" id="jf"><h3>${edit?"Edit job":"Create a job"}</h3><div class="grid">${F("title","Job title")}${F("dept","Department")}${F("type","Job type")}${F("loc","Location")}${F("salary","Salary range (optional)","")}${F("deadline","Application deadline",'type="date" required')}</div><label for="j_desc">Description and responsibilities</label><textarea id="j_desc" required>${esc(j.desc)}</textarea>
+ <h2>Eligibility rules</h2><div class="grid">${num("exp","Minimum experience (years)",0,40)}<div><label for="j_qual">Minimum qualification</label><select id="j_qual">${options(same(QUALS),j.qual)}</select></div>${F("req","Required skills, comma separated")}${F("pref","Preferred skills, comma separated","")}${num("minScore","Auto-invite score",1,100)}</div>
+ <h2>Test and ranking</h2><div class="grid">${num("pass","Pass mark %",1,100)}${num("testW","Test weight in final score %",0,100)}${num("mins","Test time in minutes",1,180)}${edit?"":`<div><label for="j_set">Starting questions</label><select id="j_set">${options([["gen","General"],["web","Web development"],["mkt","Marketing"]],"gen")}</select></div>`}</div>
+ <p class="bad" id="je" role="alert"></p><div class="bar"><button>${edit?"Save changes":"Publish job"}</button>${edit?'<button type="button" class="alt" onclick="edit=null;render()">Cancel</button>':""}</div></form>`);
+ $("jf").onsubmit=e=>{e.preventDefault();const v=k=>$("j_"+k).value.trim(),list=k=>[...new Set(v(k).toLowerCase().split(",").map(s=>s.trim()).filter(Boolean))];
+  const d={};["title","dept","type","loc","salary","deadline","desc","qual"].forEach(k=>d[k]=v(k));["exp","minScore","pass","testW","mins"].forEach(k=>d[k]=+v(k));d.req=list("req");d.pref=list("pref");
+  if(!d.req.length){$("je").textContent="Add at least one required skill.";return}
+  if(edit)Object.assign(job(edit),d);else{const id=Date.now();S.tests[id]=bankFor(v("set"));S.jobs.push({...d,id,set:v("set"),open:true})}edit=null;save();render()};
+}
+function bank(){
+ const j=job(pick)||S.jobs[0];pick=j.id;const qs=S.tests[j.id];
+ page(`<label for="pk">Test for job</label><select id="pk">${options(S.jobs.map(x=>[x.id,x.title]),pick)}</select><p class="mute">${qs.length} questions, shown in random order · ${j.mins} minutes · pass mark ${j.pass}%</p>
+ ${qs.map((q,i)=>`<div class="card">${q.sc?`<div class="mute"><b>Scenario:</b> ${esc(q.sc)}</div>`:""}<b>${i+1}. ${esc(q.q)}</b><ul>${q.o.map((o,k)=>`<li class="${k===q.a?'good':''}">${esc(o)}${k===q.a?" (correct)":""}</li>`).join("")}</ul>${qs.length>1?`<button class="alt" onclick="S.tests[pick].splice(${i},1);save();render()">Delete question</button>`:""}</div>`).join("")}
+ <form class="card" id="qf"><h3>Add a question</h3><label for="sc">Scenario (optional)</label><textarea id="sc"></textarea><label for="qq">Question</label><input id="qq" required>${[0,1,2,3].map(k=>`<label for="o${k}">Option ${k+1}</label><input id="o${k}" required>`).join("")}<label for="ans">Correct option</label><select id="ans">${options([0,1,2,3].map(k=>[k,"Option "+(k+1)]),0)}</select><p><button>Add question</button></p></form>`);
+ $("pk").onchange=e=>{pick=+e.target.value;render()};
+ $("qf").onsubmit=e=>{e.preventDefault();qs.push({sc:$("sc").value.trim(),q:$("qq").value.trim(),o:[0,1,2,3].map(k=>$("o"+k).value.trim()),a:+$("ans").value});save();render()};
+}
+function outbox(){page(S.mail.map(mailCard).join("")||empty("No emails yet."))}
+onhashchange=()=>{if(admin!==(location.hash==="#admin"))portal(!admin)};
+render();
+</script>
+
+</body></html>
